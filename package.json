@@ -1,0 +1,21 @@
+{
+  "name": "nhb-music-player",
+  "version": "1.0.0",
+  "description": "Rperoductor de musica con funciones extras",
+  "scripts": {
+    "generate": "node generate-songs.js",
+    "serve": "python -m http.server 8000",
+    "setup": "npm install"
+  },
+  "dependencies": {
+    "music-metadata": "^11.12.3"
+  },
+  "keywords": [
+    "music",
+    "player",
+    "retro",
+    "crt"
+  ],
+  "author": "",
+  "license": "MIT"
+}

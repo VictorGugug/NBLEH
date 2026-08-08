@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TA1</title>
+<link rel="icon" href="mus/favicon1.png" type="image/png">
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+
+<style>
+:root{
+  --bg:#0b0b0c;
+  --fg:#fcfff8;
+  --dim:#8a8a8c;
+  --warn:#df6b4f;
+  --purple:#9b7ad4;
+  --accent:#dfb64f;
+  --box:#161618;
+  --border:#2a2a2e;
+  --hover:#1e1e22;
+  --act-bg:#1a1a1e;
+}
+
+body.theme-agartha{
+  --bg:#0c0f14;
+  --fg:#dceef8;
+  --dim:#5a8ab0;
+  --warn:#df9b6f;
+  --purple:#8ab8d4;
+  --accent:#bcdfee;
+  --box:#10141c;
+  --border:#2a3a4e;
+  --hover:#14202e;
+  --act-bg:#0e1820;
+}
+
+html,body{height:100%}
+body{
+  margin:0;background:var(--bg);color:var(--fg);
+  font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,"Courier New",monospace;
+  letter-spacing:.2px;
+  overflow:hidden;
+  cursor:default;
+}
+
+.purple-text{color:var(--purple);font-weight:bold}
+
+.bezel{border:1px solid var(--border);border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+.blink{animation:blink 1.1s steps(1) infinite}
+@keyframes blink{50%{opacity:.3}}
+
+.scanlines::after{content:"";pointer-events:none;position:fixed;inset:0;background:repeating-linear-gradient(to bottom,rgba(255,255,255,.018),rgba(255,255,255,.018) 1px,transparent 2px,transparent 3px);z-index:9998}
+.vignette::before{content:"";position:fixed;inset:0;pointer-events:none;box-shadow:inset 0 0 100px 30px rgba(0,0,0,.7)}
+
+::-webkit-scrollbar{width:8px}
+::-webkit-scrollbar-track{background:var(--box)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:var(--accent)}
+.player,button,a,.song,input,label,.gear-toggle-container,.btn{cursor:pointer}
+
+.app{display:none;height:100%}
+.grid{display:grid;grid-template-columns:1fr;grid-template-rows:1fr;height:100%;gap:12px;padding:12px;box-sizing:border-box}
+.playerWrap{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%}
+
+.player{max-width:720px;width:100%;background:var(--box);padding:18px;border-radius:12px;border:1px solid var(--border);box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.player .header{display:flex;gap:16px;align-items:center}
+.cover{width:180px;height:180px;object-fit:cover;border-radius:8px;border:1px solid var(--border);background:var(--bg)}
+.meta{flex:1;min-width:0}
+.title{font-size:24px;margin:0 0 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.artist{margin:0;color:var(--dim);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.album-info{font-size:11px;color:var(--dim);margin:3px 0;display:block}
+.year-info{font-size:10px;color:var(--accent);display:block}
+.controls{display:flex;align-items:center;gap:12px;margin-top:12px;flex-wrap:wrap}
+button,.btn{background:transparent;color:var(--fg);border:1px solid var(--border);padding:6px 10px;border-radius:6px;font-weight:600;font-size:14px;font-family:inherit;transition:opacity .15s}
+button:hover,.btn:hover{opacity:.75}
+.progress{margin-top:12px}
+.bar{height:10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;overflow:hidden;cursor:pointer}
+.bar>div{height:100%;width:0%;background:var(--accent);transition:width .1s linear}
+.time{display:flex;justify-content:space-between;color:var(--dim);font-size:14px;margin-top:6px}
+.playlist{margin-top:16px;border-top:1px dashed var(--border);padding-top:10px;max-height:36vh;overflow:auto}
+.song{display:flex;align-items:center;gap:10px;padding:8px;border-radius:6px;transition:background .15s}
+.song:hover{background:var(--hover)}
+.song.active{background:var(--act-bg);border:1px dashed var(--border)}
+.song .thumb{width:40px;height:40px;border:1px solid var(--border);object-fit:cover;border-radius:4px;background:var(--bg);flex-shrink:0}
+.song-info{flex:1;min-width:0}
+.song-title{font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.song-artist{font-size:12px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.song-remove{opacity:0;transition:opacity .15s;background:transparent;border:none;color:var(--warn);font-size:16px;padding:0 5px}
+.song:hover .song-remove{opacity:1}
+.bottom-text{text-align:center;margin-top:10px}
+.bottom-text a{text-decoration:none;color:inherit}
+#boot{position:absolute;inset:12px;padding:16px;background:var(--box);z-index:1000;overflow:auto}
+#boot pre{margin:0;white-space:pre-wrap}
+.enter{color:var(--accent)}
+.errorlog{color:var(--warn)}
+.redBlink{animation:redblink .35s steps(1) 10}
+@keyframes redblink{50%{opacity:.2}}
+
+.gear-toggle-container{position:fixed;bottom:20px;right:20px;width:54px;height:54px;z-index:10;display:flex;align-items:center;justify-content:center;background:none;border:none;padding:0}
+.gear-icon{width:46px;height:46px;fill:var(--accent);opacity:.8;transition:opacity .2s}
+.gear-toggle-container:hover .gear-icon{opacity:1}
+
+#configToast{position:fixed;top:20px;right:20px;background:var(--box);border:1px solid var(--border);color:var(--fg);padding:8px 16px;border-radius:6px;font-weight:bold;opacity:0;transition:opacity .3s;z-index:200;pointer-events:none;font-size:12px}
+
+.lyric-line{padding:4px 8px;color:var(--dim);cursor:pointer;border-radius:4px;transition:background .12s,color .12s}
+.lyric-line:hover{background:rgba(255,255,255,.05);color:var(--fg)}
+.lyric-active{background:rgba(155,122,212,.22);color:var(--fg);font-weight:bold}
+
+body.theme-agartha .lyric-active{background:rgba(138,184,212,.22)}
+
+.glitch{position:relative;display:inline-block}
+.glitch::before,.glitch::after{content:attr(data-text);position:absolute;left:0;top:0;opacity:0;pointer-events:none}
+.glitch.active::before{color:var(--warn);animation:gl1 .8s steps(2) 1}
+.glitch.active::after{color:#fff;animation:gl2 .8s steps(2) 1}
+@keyframes gl1{10%{opacity:.6;transform:translate(1px,0)}30%{opacity:.4;transform:translate(-1px,0)}50%{opacity:.6;transform:translate(1px,1px)}}
+@keyframes gl2{15%{opacity:.3;transform:translate(-1px,0)}35%{opacity:.4;transform:translate(1px,0)}55%{opacity:.3;transform:translate(-1px,1px)}}
+
+.lyrics-window{display:none;position:fixed;top:80px;left:80px;min-width:320px;min-height:180px;max-width:500px;max-height:60vh;background:var(--box);color:var(--fg);z-index:9999;border:1px solid var(--border);box-shadow:0 4px 16px rgba(0,0,0,.4);overflow:hidden;resize:both}
+.lyrics-header{cursor:move;background:var(--bg);padding:6px 12px;font-weight:bold;border-bottom:1px solid var(--border);user-select:none}
+.lyrics-content{padding:12px;font-size:1.1em;line-height:1.6;max-height:calc(60vh - 40px);overflow-y:auto}
+</style>
+</head>
+<body class="scanlines vignette">
+
+<div id="configToast" class="bezel"></div>
+
+<div id="boot" class="bezel">
+  <pre id="bootText" aria-live="polite"></pre>
+  <div id="pressEnter" class="enter blink" style="margin-top:10px">[PRESS ENTER TO START] - [S PARA SKIPEAR]</div>
+</div>
+
+<div class="app" id="app">
+  <div class="grid" id="mainGrid">
+    <div class="playerWrap">
+      <div class="player bezel" id="playerUI">
+        <div class="header">
+          <img id="cover" class="cover" alt="cover">
+          <div class="meta">
+            <h2 class="title" id="title">—</h2>
+            <p class="artist" id="artist">—</p>
+            <div class="album-info" id="album">—</div>
+            <div class="year-info" id="year">—</div>
+            <div class="controls">
+              <button id="prev" title="Anterior">⏮</button>
+              <button id="play">▶</button>
+              <button id="pause" style="display:none">⏸</button>
+              <button id="next" title="Siguiente">⏭</button>
+              <button id="loop" title="Loop">↻</button>
+              <button id="shuffle" title="Shuffle">🔀</button>
+              <button id="showLyricsBtn" title="Letras">🎤</button>
+              <label class="btn" for="filePick" title="Añadir canciones">+</label>
+              <input id="filePick" type="file" accept="audio/*" multiple style="display:none">
+            </div>
+            <div class="progress">
+              <div class="bar" id="progressBar"><div id="bar"></div></div>
+              <div class="time"><span id="tCur">0:00</span><span id="tDur">0:00</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="playlist" id="playlist"></div>
+        <audio id="audio" preload="metadata"></audio>
+      </div>
+    </div>
+    <div class="bottom-text"><a href="minicoso.html">I LOV YU N-IGGA</a></div>
+
+    <div id="lyricsWindow" class="bezel lyrics-window">
+      <div id="lyricsHeader" class="lyrics-header">🎤 LETRAS <button id="closeLyrics" style="float:right;background:var(--warn);color:#fff;border:none;border-radius:4px;padding:2px 8px;font-weight:bold">✕</button></div>
+      <div id="lyricsContent" class="lyrics-content"></div>
+    </div>
+  </div>
+
+  <button class="gear-toggle-container" id="gearToggle">
+    <svg class="gear-icon" viewBox="0 0 100 100">
+      <circle cx="50" cy="50" r="20" fill="var(--box)" stroke="var(--border)" stroke-width="2"/>
+      <g id="teeth">
+        <rect x="45" y="5" width="10" height="15" rx="2"/><rect x="45" y="80" width="10" height="15" rx="2"/>
+        <rect x="5" y="45" width="15" height="10" rx="2"/><rect x="80" y="45" width="15" height="10" rx="2"/>
+        <rect x="18" y="18" width="11" height="11" rx="2" transform="rotate(45 23.5 23.5)"/>
+        <rect x="71" y="71" width="11" height="11" rx="2" transform="rotate(45 76.5 76.5)"/>
+        <rect x="71" y="18" width="11" height="11" rx="2" transform="rotate(-45 76.5 23.5)"/>
+        <rect x="18" y="71" width="11" height="11" rx="2" transform="rotate(-45 23.5 76.5)"/>
+      </g>
+    </svg>
+    <input type="checkbox" id="disableBootToggle" style="display:none">
+  </button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js" defer></script>
+
+<script>
+'use strict';
+
+const $ = id => document.getElementById(id);
+
+const bootText = $('bootText');
+const pressEnter = $('pressEnter');
+const bootScreen = $('boot');
+const appScreen = $('app');
+const disableBootToggle = $('disableBootToggle');
+const gearToggle = $('gearToggle');
+const toast = $('configToast');
+const audio = $('audio');
+const cover = $('cover');
+const titleEl = $('title');
+const artistEl = $('artist');
+const albumEl = $('album');
+const yearEl = $('year');
+const bar = $('bar');
+const tCur = $('tCur');
+const tDur = $('tDur');
+const btnPlay = $('play');
+const btnPause = $('pause');
+const playlistEl = $('playlist');
+const lyricsWindow = $('lyricsWindow');
+const lyricsContent = $('lyricsContent');
+const lyricsHeader = $('lyricsHeader');
+
+const BOOT_DISABLED_KEY = 'boot_disabled_v3';
+const FALLBACK_IMG = 'mus/favicon1.png';
+const META_TIMEOUT_MS = 6000;
+
+let songs = [];
+let currentIdx = 0;
+let eeState = Object.create(null);
+let isLooping = false;
+let isShuffled = false;
+let originalSongsOrder = [];
+let bootStarted = false;
+let bootTimers = [];
+let lyricsData = [];
+let lastLyricIdx = -1;
+let rafPending = false;
+let lyricClickHandler = null;
+
+const fmtTime = t => Math.floor(t / 60) + ':' + ('0' + Math.floor(t % 60)).slice(-2);
+
+const escapeHtml = s => String(s).replace(/[&<>"']/g, c => (
+  { '&': '&', '<': '<', '>': '>', '"': '"', "'": '&#39;' }[c]
+));
+
+function showToast(msg) {
+  toast.textContent = msg;
+  toast.style.opacity = 1;
+  setTimeout(() => { toast.style.opacity = 0; }, 2000);
+}
+
+function skipBoot() {
+  if (bootStarted) return;
+  bootStarted = true;
+  bootTimers.forEach(t => clearTimeout(t));
+  bootTimers = [];
+  bootScreen.style.display = 'none';
+  appScreen.style.display = 'grid';
+}
+
+function playSound(file) {
+  if (!audio.paused) return;
+  const s = new Audio(file);
+  s.volume = 0.2;
+  s.play().catch(() => {});
+}
+
+function parseLRC(text) {
+  const result = [];
+  const lines = text.split(/\r?\n/);
+  const timeExp = /\[(\d{1,2}):(\d{2})(?:\.(\d{1,3}))?\]/g;
+  for (const line of lines) {
+    const times = [];
+    let match;
+    timeExp.lastIndex = 0;
+    while ((match = timeExp.exec(line)) !== null) {
+      const min = parseInt(match[1], 10);
+      const sec = parseInt(match[2], 10);
+      const ms = match[3] ? parseInt(match[3].padEnd(3, '0'), 10) : 0;
+      times.push(min * 60 + sec + ms / 1000);
+    }
+    if (times.length === 0) continue;
+    const txt = line.replace(/\[\d{1,2}:\d{2}(?:\.\d{1,3})?\]/g, '').trim();
+    for (const t of times) result.push({ time: t, text: txt });
+  }
+  return result.sort((a, b) => a.time - b.time);
+}
+
+function showLyricsWindow() { lyricsWindow.style.display = 'block'; }
+function hideLyricsWindow() { lyricsWindow.style.display = 'none'; }
+
+$('showLyricsBtn').onclick = showLyricsWindow;
+$('closeLyrics').onclick = hideLyricsWindow;
+
+(function () {
+  let offsetX = 0, offsetY = 0, dragging = false;
+  lyricsHeader.onmousedown = e => {
+    if (e.target.id === 'closeLyrics') return;
+    dragging = true;
+    offsetX = e.clientX - lyricsWindow.offsetLeft;
+    offsetY = e.clientY - lyricsWindow.offsetTop;
+    document.body.style.userSelect = 'none';
+  };
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    lyricsWindow.style.left = (e.clientX - offsetX) + 'px';
+    lyricsWindow.style.top = (e.clientY - offsetY) + 'px';
+  });
+  document.addEventListener('mouseup', () => {
+    dragging = false;
+    document.body.style.userSelect = '';
+  });
+})();
+
+function loadLyricsForSong(song) {
+  const base = song.src.replace(/\.[^.]+$/, '');
+  const fileName = song.src.split('/').pop().replace(/\.[^.]+$/, '');
+  const tryFiles = [
+    base + '.lrc',
+    base + '.lcr',
+    'mus/' + fileName + '.lrc',
+    'mus/' + fileName + '.lcr'
+  ];
+  lyricsData = [];
+  lastLyricIdx = -1;
+  lyricsContent.innerHTML = '';
+
+  (function tryNext(i) {
+    if (i >= tryFiles.length) {
+      lyricsContent.innerHTML = '<span style="color:var(--dim);text-align:center;display:block;margin-top:20px">\uD83D\uDCDD Sin letras disponibles</span>';
+      return;
+    }
+    fetch(tryFiles[i])
+      .then(r => r.ok ? r.text() : Promise.reject(new Error('HTTP ' + r.status)))
+      .then(text => {
+        lyricsData = parseLRC(text);
+        if (!lyricsData.length) throw new Error('empty');
+        buildLyricsDOM();
+        renderLyrics(0);
+      })
+      .catch(() => tryNext(i + 1));
+  })(0);
+}
+
+function buildLyricsDOM() {
+  lyricsContent.innerHTML = lyricsData.map(line =>
+    '<div class="lyric-line" data-time="' + line.time + '">' + (escapeHtml(line.text) || '&nbsp;') + '</div>'
+  ).join('');
+  if (lyricClickHandler) lyricsContent.removeEventListener('click', lyricClickHandler);
+  lyricClickHandler = e => {
+    const el = e.target.closest('.lyric-line');
+    if (!el) return;
+    const t = parseFloat(el.dataset.time);
+    if (!isNaN(t)) {
+      audio.currentTime = t;
+      if (audio.paused) audio.play().catch(() => {});
+    }
+  };
+  lyricsContent.addEventListener('click', lyricClickHandler);
+}
+
+function renderLyrics(currentTime) {
+  if (!lyricsData.length) return;
+  const children = lyricsContent.children;
+  if (children.length !== lyricsData.length) return;
+
+  let lo = 0, hi = lyricsData.length - 1, activeIdx = -1;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    if (lyricsData[mid].time <= currentTime) { activeIdx = mid; lo = mid + 1; }
+    else hi = mid - 1;
+  }
+
+  if (activeIdx === lastLyricIdx) return;
+  if (lastLyricIdx >= 0) children[lastLyricIdx].classList.remove('lyric-active');
+  if (activeIdx >= 0) {
+    children[activeIdx].classList.add('lyric-active');
+    const el = children[activeIdx];
+    const cr = el.getBoundingClientRect();
+    const pr = lyricsContent.getBoundingClientRect();
+    const target = pr.top + pr.height / 2 - cr.top - cr.height / 2 + lyricsContent.scrollTop;
+    lyricsContent.scrollTop = target;
+  }
+  lastLyricIdx = activeIdx;
+}
+
+const THEMES = {
+  agartha: { bodyClass: 'theme-agartha', favicon: 'mus/agartha.png' }
+};
+let currentTheme = null;
+
+function applyTheme(themeName) {
+  if (currentTheme === themeName) return;
+  Object.values(THEMES).forEach(t => document.body.classList.remove(t.bodyClass));
+  currentTheme = themeName;
+  const link = document.querySelector('link[rel="icon"]');
+  if (themeName && THEMES[themeName]) {
+    document.body.classList.add(THEMES[themeName].bodyClass);
+    if (link) link.href = THEMES[themeName].favicon;
+  } else if (link) {
+    link.href = FALLBACK_IMG;
+  }
+}
+
+if (localStorage.getItem(BOOT_DISABLED_KEY) === 'true') {
+  skipBoot();
+  disableBootToggle.checked = true;
+}
+
+gearToggle.addEventListener('click', e => {
+  e.preventDefault();
+  const newState = !disableBootToggle.checked;
+  disableBootToggle.checked = newState;
+  playSound(newState ? 'mus/onof/off.mp3' : 'mus/onof/on.mp3');
+  localStorage.setItem(BOOT_DISABLED_KEY, newState ? 'true' : 'false');
+  showToast(newState ? "INICIO DESACTIVADO" : "INICIO ACTIVADO");
+});
+
+const bootLines = [
+  '>>> INITIALIZING [DISASSEMBLY DRONE UNIT: DDM-04]',
+  '>>> Core Systems: ONLINE',
+  '>>> Neural Combat Subroutines: ACTIVE',
+  '>>> Memory Integrity: [ERROR - PARTIAL CORRUPTION]',
+  '>>> Weapon Systems: ONLINE [Scythe Arm / Plasma Projector]',
+  '>>> Stealth Mode: ENGAGED',
+  '>>> Directive Override: [HUNTING - COPPER BLOOD DETECTED]'
+];
+const bootTimings = [0, 1000, 1700, 2400, 3100, 3700, 4000];
+const bootExtras = [
+  { t: 4300, html: '\n\n<span class="glitch errorlog redBlink" data-text="--- ERROR LOG ---">--- ERROR LOG ---</span>\n\u00B7 Core Fragmentation Detected\n\u00B7 Memory Sectors 7A-9F Unstable\n\u00B7 Unverified Updates from JCJenson Database' },
+  { t: 5600, html: '\n\n[EXECUTION PRIORITY: TERMINATE WORKER DRONES]\n[SECONDARY DIRECTIVE: ELIMINATE SENTINELS]\n[FAILSAFE: NONE]' },
+  { t: 6500, html: '\n\n>>> SYSTEM BOOT COMPLETE\n>>> Unit DDM-04 Awaiting Targets...' },
+  { t: 7200, html: '\n\n<span class="purple-text">[LOL]</span>\n<span class="purple-text">>>> \u00A1BITE ME! >:(</span>', thenHide: 1000 }
+];
+
+function startBoot() {
+  if (bootStarted) return;
+  bootStarted = true;
+  pressEnter.style.display = 'none';
+  bootText.innerHTML = '';
+  bootLines.forEach((ln, i) => {
+    bootTimers.push(setTimeout(() => {
+      bootText.innerHTML += (bootText.innerHTML ? "\n" : "") + ln;
+    }, bootTimings[i]));
+  });
+  bootExtras.forEach(({ t, html, thenHide }) => {
+    bootTimers.push(setTimeout(() => {
+      bootText.innerHTML += html;
+      const gl = bootText.querySelector('.glitch');
+      if (gl) gl.classList.add('active');
+      if (thenHide) bootTimers.push(setTimeout(() => {
+        bootScreen.style.display = 'none';
+        appScreen.style.display = 'grid';
+      }, thenHide));
+    }, t));
+  });
+}
+
+async function loadSongsFromJSON() {
+  try {
+    const r = await fetch('songs.json');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    songs = await r.json();
+    originalSongsOrder = songs.slice();
+  } catch (e) {
+    console.error('Error cargando songs.json:', e);
+    songs = [];
+  }
+}
+
+function initEE() {
+  const rolls = Object.create(null);
+  for (const s of songs) {
+    if (!s.easterEgg) continue;
+    const key = s.src;
+    if (!(s.artist in rolls)) rolls[s.artist] = Math.random() < 0.05;
+    eeState[key] = rolls[s.artist];
+  }
+}
+
+function getCoverSrc(s) {
+  return (s.easterEgg && eeState[s.src]) ? s.easterEgg : (s.image || FALLBACK_IMG);
+}
+
+function fallbackMetadata(file) {
+  const name = file.name.replace(/\.[^/.]+$/, '');
+  let title = name, artist = 'Artista desconocido', album = '\u00C1lbum desconocido', year = 'A\u00F1o desconocido';
+  const parts = name.split(/[-\u2013\u2014]/).map(p => p.trim());
+  if (parts.length >= 2) { artist = parts[0]; title = parts.slice(1).join(' - '); }
+  return { title, artist, album, year, picture: null };
+}
+
+function pictureToBlobURL(pic) {
+  try {
+    const bytes = new Uint8Array(pic.data);
+    const mime = pic.format || 'image/jpeg';
+    const blob = new Blob([bytes], { type: mime });
+    return URL.createObjectURL(blob);
+  } catch (e) {
+    return null;
+  }
+}
+
+function extractMetadata(file) {
+  return new Promise(resolve => {
+    if (typeof window.jsmediatags === 'undefined') {
+      resolve(fallbackMetadata(file));
+      return;
+    }
+    const timer = setTimeout(() => resolve(fallbackMetadata(file)), META_TIMEOUT_MS);
+    window.jsmediatags.read(file, {
+      onSuccess(tag) {
+        clearTimeout(timer);
+        const t = tag.tags || {};
+        resolve({
+          title: t.title || file.name.replace(/\.[^/.]+$/, ''),
+          artist: t.artist || 'Artista desconocido',
+          album: t.album || '\u00C1lbum desconocido',
+          year: t.year || 'A\u00F1o desconocido',
+          picture: t.picture ? pictureToBlobURL(t.picture) : null
+        });
+      },
+      onError() { clearTimeout(timer); resolve(fallbackMetadata(file)); }
+    });
+  });
+}
+
+function readTagsFromURL(url) {
+  return new Promise((resolve, reject) => {
+    if (typeof window.jsmediatags === 'undefined') {
+      reject(new Error('jsmediatags no disponible'));
+      return;
+    }
+    const timer = setTimeout(() => reject(new Error('timeout')), META_TIMEOUT_MS);
+    try {
+      window.jsmediatags.read(url, {
+        onSuccess(tag) {
+          clearTimeout(timer);
+          resolve((tag && tag.tags) || {});
+        },
+        onError(err) {
+          clearTimeout(timer);
+          reject(err || new Error('read error'));
+        }
+      });
+    } catch (e) {
+      clearTimeout(timer);
+      reject(e);
+    }
+  });
+}
+
+function isPlaceholder(song) {
+  const fileBase = song.src.split('/').pop().replace(/\.[^/.]+$/, '');
+  return !song.title
+      || song.title === fileBase
+      || song.artist === 'Artista desconocido';
+}
+
+async function refreshMetadata(song) {
+  if (!song.src || !isPlaceholder(song)) return;
+  try {
+    const tags = await readTagsFromURL(song.src);
+    if (tags.title) song.title = String(tags.title).trim();
+    if (tags.artist) song.artist = String(tags.artist).trim();
+    if (tags.album) song.album = String(tags.album).trim();
+    if (tags.year) song.year = String(tags.year).trim();
+    if (tags.picture && !song.image) {
+      const pic = pictureToBlobURL(tags.picture);
+      if (pic) song.image = pic;
+    }
+  } catch (e) {
+    console.warn('Metadata no refrescada para', song.src, '-', e.message || e);
+  }
+}
+
+async function loadMetadataForSongs() {
+  await Promise.all(songs.map(refreshMetadata));
+  songs.sort((a, b) => {
+    const aA = a.artist || '', bA = b.artist || '';
+    if (aA !== bA) return aA.localeCompare(bA);
+    return (a.title || '').localeCompare(b.title || '');
+  });
+}
+
+async function addLocalSongs(files) {
+  if (!files || !files.length) return;
+  showToast('Procesando ' + files.length + ' archivo(s)...');
+  const metas = await Promise.all(Array.from(files).map(extractMetadata));
+  metas.forEach((meta, i) => {
+    songs.push({
+      title: meta.title,
+      artist: meta.artist,
+      album: meta.album,
+      year: meta.year,
+      src: URL.createObjectURL(files[i]),
+      image: meta.picture || FALLBACK_IMG,
+      isLocal: true
+    });
+  });
+  initEE();
+  render();
+}
+
+async function load(i, autoPlay = true) {
+  if (!songs.length) return;
+  if (i < 0) i = songs.length - 1;
+  if (i >= songs.length) i = 0;
+  currentIdx = i;
+  const s = songs[currentIdx];
+
+  titleEl.textContent = s.title;
+  artistEl.textContent = s.artist;
+  albumEl.textContent = s.album ? '\u00C1lbum: ' + s.album : '\u2014';
+  yearEl.textContent = s.year ? 'A\u00F1o: ' + s.year : '\u2014';
+  cover.src = getCoverSrc(s);
+
+  audio.src = s.src;
+  audio.load();
+  render();
+  applyTheme(s.theme || null);
+  loadLyricsForSong(s);
+
+  if (autoPlay) {
+    audio.play().then(() => {
+      btnPlay.style.display = 'none';
+      btnPause.style.display = 'inline-block';
+    }).catch(() => {});
+  }
+}
+
+function render() {
+  const frag = document.createDocumentFragment();
+  for (let i = 0; i < songs.length; i++) {
+    const s = songs[i];
+    const d = document.createElement('div');
+    d.className = 'song' + (i === currentIdx ? ' active' : '');
+    d.innerHTML =
+      '<img class="thumb" src="' + getCoverSrc(s) + '" onerror="this.src=\'' + FALLBACK_IMG + '\'" loading="lazy">' +
+      '<div class="song-info">' +
+        '<div class="song-title">' + escapeHtml(s.title) + '</div>' +
+        '<div class="song-artist">' + escapeHtml(s.artist) + '</div>' +
+      '</div>' +
+      (s.isLocal ? '<button class="song-remove" title="Quitar">\u2715</button>' : '');
+    d.onclick = e => {
+      if (!e.target.classList.contains('song-remove')) load(i, true);
+    };
+    if (s.isLocal) {
+      d.querySelector('.song-remove').onclick = e => {
+        e.stopPropagation();
+        removeSong(i);
+      };
+    }
+    frag.appendChild(d);
+  }
+  playlistEl.replaceChildren(frag);
+}
+
+function removeSong(i) {
+  if (i < 0 || i >= songs.length) return;
+  if (songs[i].isLocal) {
+    if (songs[i].image && songs[i].image.startsWith('blob:')) URL.revokeObjectURL(songs[i].image);
+    URL.revokeObjectURL(songs[i].src);
+  }
+  const wasCurrent = i === currentIdx;
+  songs.splice(i, 1);
+  if (!songs.length) {
+    audio.pause();
+    audio.removeAttribute('src');
+    audio.load();
+    titleEl.textContent = artistEl.textContent = albumEl.textContent = yearEl.textContent = '\u2014';
+    cover.src = FALLBACK_IMG;
+    currentIdx = 0;
+    render();
+    return;
+  }
+  if (currentIdx >= i && currentIdx > 0) currentIdx--;
+  if (wasCurrent) load(Math.min(currentIdx, songs.length - 1), false);
+  else render();
+}
+
+function shuffleSongs() {
+  if (!isShuffled) {
+    originalSongsOrder = songs.slice();
+    for (let i = songs.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [songs[i], songs[j]] = [songs[j], songs[i]];
+    }
+    isShuffled = true;
+    $('shuffle').style.color = 'var(--accent)';
+  } else {
+    const cur = songs[currentIdx];
+    songs = originalSongsOrder.slice();
+    currentIdx = songs.indexOf(cur);
+    if (currentIdx < 0) currentIdx = 0;
+    isShuffled = false;
+    $('shuffle').style.color = '';
+  }
+  render();
+}
+
+btnPlay.onclick = () => {
+  audio.play();
+  btnPlay.style.display = 'none';
+  btnPause.style.display = 'inline-block';
+};
+btnPause.onclick = () => {
+  audio.pause();
+  btnPause.style.display = 'none';
+  btnPlay.style.display = 'inline-block';
+};
+$('prev').onclick = () => load(currentIdx - 1);
+$('next').onclick = () => load(currentIdx + 1);
+$('loop').onclick = () => {
+  isLooping = !isLooping;
+  audio.loop = isLooping;
+  $('loop').style.color = isLooping ? 'var(--accent)' : '';
+};
+$('shuffle').onclick = shuffleSongs;
+$('filePick').onchange = e => addLocalSongs(Array.from(e.target.files));
+
+function onTimeUpdate() {
+  if (rafPending) return;
+  rafPending = true;
+  requestAnimationFrame(() => {
+    rafPending = false;
+    const dur = audio.duration;
+    const cur = audio.currentTime;
+    bar.style.width = (dur ? (cur / dur) * 100 : 0) + '%';
+    tCur.textContent = fmtTime(cur);
+    tDur.textContent = isNaN(dur) ? '0:00' : fmtTime(dur);
+    if (lyricsWindow.style.display !== 'none' && lyricsData.length) {
+      renderLyrics(cur);
+    }
+  });
+}
+audio.addEventListener('timeupdate', onTimeUpdate);
+audio.onended = () => { if (!isLooping) load(currentIdx + 1); };
+
+$('progressBar').onclick = e => {
+  const rect = $('progressBar').getBoundingClientRect();
+  const dur = audio.duration;
+  if (!isNaN(dur) && dur > 0) {
+    audio.currentTime = ((e.clientX - rect.left) / rect.width) * dur;
+  }
+};
+
+document.addEventListener('keydown', e => {
+  const key = e.key.toLowerCase();
+  if (key === 's') { e.preventDefault(); skipBoot(); return; }
+  if (!bootStarted) {
+    if (key === 'enter') startBoot();
+    return;
+  }
+  if (key === ' ') {
+    e.preventDefault();
+    audio.paused ? btnPlay.click() : btnPause.click();
+  } else if (key === 'arrowright') {
+    load(currentIdx + 1);
+  } else if (key === 'arrowleft') {
+    load(currentIdx - 1);
+  }
+});
+
+document.addEventListener('click', e => {
+  if (!bootStarted && !e.target.closest('#gearToggle')) startBoot();
+});
+
+(async function init() {
+  await loadSongsFromJSON();
+  initEE();
+  await loadMetadataForSongs();
+  if (songs.length) {
+    currentIdx = 0;
+    load(0, false);
+    render();
+  }
+})();
+</script>
+
+</body>
+</html>

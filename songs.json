@@ -1,0 +1,70 @@
+[
+  {
+    "src": "mus/134340 Pluto.mp3",
+    "title": "134340 Pluto",
+    "artist": "Cojum Dip",
+    "album": "Cojum Dip",
+    "year": "2019",
+    "image": "mus/favicon1.png"
+  },
+  {
+    "src": "mus/Ancient Aliens.mp3",
+    "title": "Ancient Aliens",
+    "artist": "Lemon Demon",
+    "album": "Spirit Phone",
+    "year": "2016",
+    "image": "mus/favicon1.png",
+    "easterEgg": "mus/NC.jpeg"
+  },
+  {
+    "src": "mus/Down Under (Feat. Colin Hay).mp3",
+    "title": "Luude - Down Under (Feat. Colin Hay)",
+    "artist": "Luude, Colin Hay",
+    "album": "Down Under (Feat. Colin Hay)",
+    "year": "2021",
+    "image": "mus/favicon1.png",
+    "theme": "agartha"
+  },
+  {
+    "src": "mus/Falling with you.mp3",
+    "title": "Falling With You",
+    "artist": "AJ Dispirito",
+    "album": "Murder Drones Volume 3 (Original Webseries Soundtrack)",
+    "year": "2024",
+    "image": "mus/favicon1.png"
+  },
+  {
+    "src": "mus/No Eyed Girl.mp3",
+    "title": "No Eyed Girl",
+    "artist": "Lemon Demon",
+    "album": "Spirit Phone",
+    "year": "2016",
+    "image": "mus/favicon1.png",
+    "easterEgg": "mus/NC.jpeg"
+  },
+  {
+    "src": "mus/The HuMaN Gala.mp3",
+    "title": "The HuMaN Gala",
+    "artist": "AJ DiSpirito",
+    "album": "Murder Drones Volume 2 (Original Webseries Soundtrack)",
+    "year": "2023",
+    "image": "mus/favicon1.png",
+    "easterEgg": "mus/The HuMaN Galap.jpeg"
+  },
+  {
+    "src": "mus/Variations on a Cloud.mp3",
+    "title": "Variations on a Cloud",
+    "artist": "Miracle Musical",
+    "album": "Variations on a Cloud - Variations on a Cloud Sencillo",
+    "year": "2012",
+    "image": "mus/favicon1.png"
+  },
+  {
+    "src": "mus/Waltz in E-Major, Op. 15 ＂Moon Waltz＂.mp3",
+    "title": "Waltz in E-Major, Op. 15 ＂Moon Waltz＂",
+    "artist": "Cojum Dip",
+    "album": "Cojum Dip",
+    "year": "2019",
+    "image": "mus/favicon1.png"
+  }
+]

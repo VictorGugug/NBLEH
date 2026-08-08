@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MD // Boot & Console</title>
+<link rel="icon" href="mus/favicon1.png" type="image/png">
+<style>
+  /* ====== CRT / Retro BIOS aesthetic ====== */
+  :root{
+    --crt-bg:#050505;           /* deep black */
+    --crt-fg:#f8e88a;           /* warm amber */
+    --crt-dim:#9c9056;          /* dimmed amber */
+    --crt-warn:#ff4545;         /* red alert */
+    --accent:#ffd54a;           /* soft highlight */
+    --box:#141414;
+    --border:#d5b653;
+  }
+  html,body{height:100%}
+  body{
+    margin:0; background:var(--crt-bg); color:var(--crt-fg);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Courier New", monospace;
+    letter-spacing: .2px; text-shadow:0 0 6px rgba(255,214,74,.25);
+    overflow:hidden;
+  }
+  .scanlines::after{content:""; pointer-events:none; position:fixed; inset:0; background:repeating-linear-gradient( to bottom, rgba(255,255,255,.03), rgba(255,255,255,.03) 1px, transparent 2px, transparent 3px ); mix-blend-mode:overlay; opacity:.25;}
+  .vignette::before{content:""; position:fixed; inset:0; pointer-events:none; box-shadow: inset 0 0 120px 40px #000;}
+  .bezel{border:2px solid var(--border); border-radius:10px; box-shadow:0 0 18px rgba(255,214,74,.15), inset 0 0 10px rgba(255,214,74,.08);}  
+  .blink{animation:blink 1s steps(1) infinite;} @keyframes blink{50%{opacity:0}}
+  .flicker{animation:flicker 2s infinite;} @keyframes flicker{0%,100%{opacity:1} 10%{opacity:.8} 20%{opacity:.6} 30%{opacity:.9} 40%{opacity:.7} 50%{opacity:1} 70%{opacity:.85} 90%{opacity:.95}}
+  .glitch{position:relative;}
+  .glitch::before,.glitch::after{content:attr(data-text); position:absolute; left:0; top:0; clip-path:inset(0 0 0 0);}
+  .glitch::before{transform:translate(1px,0); color:var(--crt-warn); opacity:.8; animation:gl1 800ms infinite;} 
+  .glitch::after{transform:translate(-1px,0); color:#fff; opacity:.3; animation:gl2 800ms infinite;}
+  @keyframes gl1{0%{clip-path:inset(0 0 85% 0)} 20%{clip-path:inset(10% 0 60% 0)} 40%{clip-path:inset(80% 0 5% 0)} 60%{clip-path:inset(50% 0 20% 0)} 80%{clip-path:inset(30% 0 50% 0)} 100%{clip-path:inset(0 0 85% 0)}}
+  @keyframes gl2{0%{clip-path:inset(85% 0 0 0)} 20%{clip-path:inset(60% 0 10% 0)} 40%{clip-path:inset(5% 0 80% 0)} 60%{clip-path:inset(20% 0 50% 0)} 80%{clip-path:inset(50% 0 30% 0)} 100%{clip-path:inset(85% 0 0 0)}}
+
+  /* ====== Layout after boot ====== */
+  .app{display:none; height:100%;}
+  .grid{display:grid; grid-template-columns: 300px 1fr 420px; grid-template-rows: 100%; height:100%; gap:12px; padding:12px; box-sizing:border-box;}
+
+  /* ====== Left: Clock panel (collapsible) ====== */
+  #clockPanel{position:relative;}
+  .panel{background:var(--box); height:100%; padding:12px; overflow:auto;}
+  .toggleClock{position:absolute; right:-10px; top:12px; transform:translateX(100%); background:var(--box); border:2px solid var(--border); color:var(--crt-fg); padding:6px 10px; cursor:pointer; border-radius:0 8px 8px 0;}
+  .hiddenCol{width:0!important; min-width:0; overflow:hidden;}
+  canvas{display:block; width:100%; height:auto; image-rendering: pixelated;}
+  .casio{display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:8px; font-weight:600;}
+  .casio .box{border:2px solid var(--border); padding:6px 10px; border-radius:6px;}
+
+  /* ====== Center: Big Player ====== */
+  .playerWrap{display:flex; align-items:center; justify-content:center;}
+  .player{max-width:720px; width:100%; background:#0c0c0c; padding:18px; border-radius:14px; border:2px solid var(--border); box-shadow:0 0 22px rgba(255,214,74,.12), inset 0 0 10px rgba(255,214,74,.06);} 
+  .player .header{display:flex; gap:16px; align-items:center;}
+  .cover{width:180px; height:180px; object-fit:cover; border-radius:10px; border:2px solid var(--border); background:#111;}
+  .meta{flex:1;}
+  .title{font-size:26px; margin:0 0 6px;}
+  .artist{margin:0; color:var(--crt-dim)}
+  .controls{display:flex; align-items:center; gap:12px; margin-top:12px;}
+  button, .btn{background:transparent; color:var(--crt-fg); border:2px solid var(--border); padding:6px 10px; border-radius:8px; cursor:pointer; font-weight:700;}
+  button:active{transform:translateY(1px)}
+  .progress{margin-top:12px;}
+  .bar{height:10px; background:#1a1a1a; border:2px solid var(--border); border-radius:8px; overflow:hidden;}
+  .bar > div{height:100%; width:0%; background:linear-gradient(90deg, var(--accent), #bca24b); transition:width .1s linear;}
+  .time{display:flex; justify-content:space-between; color:var(--crt-dim); font-size:14px; margin-top:6px;}
+  .playlist{margin-top:16px; border-top:2px dashed var(--border); padding-top:10px; max-height:36vh; overflow:auto;}
+  .song{display:flex; align-items:center; gap:10px; padding:8px; border-radius:8px;}
+  .song:hover{background:#121212}
+  .song .thumb{width:40px; height:40px; border:1px solid var(--border); object-fit:cover; border-radius:6px; background:#111}
+  .xHide{position:absolute; right:18px; top:18px;}
+  .floatBadge{position:fixed; bottom:12px; left:50%; transform:translateX(-50%); background:var(--box); padding:6px 12px; border:2px solid var(--border); border-radius:8px; display:none;}
+
+  /* ====== Right: Chat ====== */
+  .chat{display:flex; flex-direction:column; gap:8px; height:100%;}
+  .messages{flex:1; overflow:auto; background:#0b0b0b; padding:12px; border-radius:12px; border:2px solid var(--border);} 
+  .msg{margin-bottom:10px;}
+  .by{color:var(--accent);}
+  .me .by{color:#8bd6ff}
+  .line{white-space:pre-wrap; word-break:break-word}
+  .chatControls{display:flex; gap:8px;}
+  .chatControls input[type="text"]{flex:1; background:#0b0b0b; color:var(--crt-fg); border:2px solid var(--border); border-radius:8px; padding:8px;}
+
+  /* ====== Boot Screen ====== */
+  #boot{position:absolute; inset:12px; padding:16px; background:var(--box);}
+  #boot pre{margin:0; white-space:pre-wrap;}
+  .enter{color:var(--accent);}
+  .errorlog{color:var(--crt-warn); text-shadow:0 0 8px rgba(255,0,0,.35);} 
+  .redBlink{animation:redblink .35s steps(1) 10;} @keyframes redblink{50%{opacity:0}}
+</style>
+</head>
+<body class="scanlines vignette">
+
+<!-- ====== BOOT SCREEN ====== -->
+<div id="boot" class="bezel">
+  <pre id="bootText" aria-live="polite"></pre>
+  <div id="pressEnter" class="enter blink" style="margin-top:10px">[ENTER]</div>
+</div>
+
+<!-- ====== APP ====== -->
+<div class="app" id="app">
+  <div class="grid">
+    <!-- Left: Clock Panel -->
+    <div id="clockPanel" class="bezel panel">
+      <button class="toggleClock">⟨⟩</button>
+      <h3 style="margin-top:0">RELOJ</h3>
+      <canvas id="clock24" width="260" height="260" class="bezel"></canvas>
+      <div class="casio">
+        <div class="box" id="dateBox">--/--</div>
+        <div class="box" id="timeBox">00:00</div>
+      </div>
+      <small style="display:block; margin-top:8px; color:var(--crt-dim)">Mini 12h</small>
+      <canvas id="clock12" width="180" height="180" class="bezel"></canvas>
+    </div>
+
+    <!-- Center: Player -->
+    <div class="playerWrap">
+      <div class="player bezel" id="playerUI">
+        <button class="xHide" id="hidePlayer" title="Cerrar visor (la música sigue)">✕</button>
+        <div class="header">
+          <img id="cover" class="cover" alt="cover">
+          <div class="meta">
+            <h2 class="title" id="title">—</h2>
+            <p class="artist" id="artist">—</p>
+            <div class="controls">
+              <button id="prev">⏮</button>
+              <button id="play">▶</button>
+              <button id="pause" style="display:none">⏸</button>
+              <button id="next">⏭</button>
+              <button id="loop">↻</button>
+              <label class="btn" for="filePick">+ Añadir</label>
+              <input id="filePick" type="file" accept="audio/*" multiple style="display:none">
+            </div>
+            <div class="progress">
+              <div class="bar"><div id="bar"></div></div>
+              <div class="time"><span id="tCur">0:00</span><span id="tDur">0:00</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="playlist" id="playlist"></div>
+        <audio id="audio"></audio>
+      </div>
+      <div class="floatBadge" id="miniBadge">Reproductor oculto — clic para mostrar</div>
+    </div>
+
+    <!-- Right: Chat -->
+    <div class="chat bezel panel">
+      <h3 style="margin:0 0 6px 0">CHAT</h3>
+      <div class="messages" id="messages"></div>
+      <div class="chatControls">
+        <input id="msg" type="text" placeholder="Escribe…  (/md NuevoNombre)" />
+        <button id="send">Enviar</button>
+      </div>
+      <small style="color:var(--crt-dim)">
+        Tu nombre: <span id="who"></span> — Persistente por navegador. Mensajes guardados codificados Base64.
+      </small>
+      <footer style="margin-top:8px"><a class="btn" href="minicoso.html" style="text-decoration:none;color:inherit">para mi nigga</a></footer>
+    </div>
+  </div>
+</div>
+
+<script>
+/******************** BOOT SEQUENCE ************************/ 
+const bootText = document.getElementById('bootText');
+const pressEnter = document.getElementById('pressEnter');
+let bootStarted = false;
+const bootLines = [
+  '>>> INITIALIZING [DISASSEMBLY DRONE UNIT: DDM-04]',
+  '>>> Core Systems: ONLINE',
+  '>>> Neural Combat Subroutines: ACTIVE',
+  '>>> Memory Integrity: [ERROR - PARTIAL CORRUPTION]',
+  '>>> Weapon Systems: ONLINE [Scythe Arm / Plasma Projector]',
+  '>>> Stealth Mode: ENGAGED',
+  '>>> Directive Override: [HUNTING - COPPER BLOOD DETECTED]'
+];
+const timings = [0, 1000, 1700, 2400, 3100, 3700, 4000]; // total ~4s
+function addLine(t, text){ setTimeout(()=>{ bootText.textContent += (bootText.textContent?"\n":"") + text; }, t); }
+function startBoot(){ if(bootStarted) return; bootStarted = true; pressEnter.style.display='none';
+  bootText.textContent = '';
+  bootLines.forEach((ln, i)=> addLine(timings[i], ln));
+  // After directive -> glitch & error log
+  setTimeout(()=>{
+    bootText.innerHTML += '\n\n<span class="glitch errorlog redBlink" data-text="--- ERROR LOG ---">--- ERROR LOG ---</span>' +
+    '\n· Core Fragmentation Detected' +
+    '\n· Memory Sectors 7A-9F Unstable' +
+    '\n· Unverified Updates from JCJenson Database';
+  }, 4300);
+  // Resolve directives
+  setTimeout(()=>{
+    bootText.innerHTML += '\n\n[EXECUTION PRIORITY: TERMINATE WORKER DRONES]' +
+      '\n[SECONDARY DIRECTIVE: ELIMINATE SENTINELS]' +
+      '\n[FAILSAFE: NONE]';
+  }, 5600);
+  // Finish
+  setTimeout(()=>{
+    bootText.textContent += '\n\n>>> SYSTEM BOOT COMPLETE\n>>> Unit DDM-04 Awaiting Targets...';
+  }, 6500);
+  setTimeout(()=>{
+    bootText.textContent += '\n\n[LOL]\n>>> ¡BITE ME! >:v';
+  }, 7200);
+  // Slide into app
+  setTimeout(()=>{ document.getElementById('boot').style.display='none'; document.getElementById('app').style.display='block'; }, 8200);
+}
+document.addEventListener('keydown', (e)=>{ if(e.key==='Enter') startBoot();});
+document.addEventListener('click', ()=>{ if(!bootStarted) startBoot(); });
+
+/******************** CLOCKS ************************/ 
+const c24 = document.getElementById('clock24');
+const c12 = document.getElementById('clock12');
+const ctx24 = c24.getContext('2d');
+const ctx12 = c12.getContext('2d');
+const dateBox = document.getElementById('dateBox');
+const timeBox = document.getElementById('timeBox');
+function drawClock(ctx, size, is24){
+  const w=ctx.canvas.width, h=ctx.canvas.height, r=Math.min(w,h)/2-12; ctx.clearRect(0,0,w,h); ctx.save(); ctx.translate(w/2,h/2);
+  // bezel
+  ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--border'); ctx.lineWidth=3; ctx.beginPath(); ctx.arc(0,0,r+6,0,Math.PI*2); ctx.stroke();
+  // ticks
+  ctx.strokeStyle = '#6b5f30';
+  for(let i=0;i<(is24?24:12);i++){ ctx.save(); ctx.rotate((Math.PI*2)*(i/(is24?24:12))); ctx.beginPath(); ctx.moveTo(0,-r); ctx.lineTo(0,-r+10); ctx.stroke(); ctx.restore(); }
+  // labels
+  ctx.fillStyle = '#d7c97a'; ctx.font = '16px monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  for(let i=0;i<(is24?24:12);i+= (is24?2:1)){ const ang=(Math.PI*2)*(i/(is24?24:12))-Math.PI/2; const x=(r-24)*Math.cos(ang), y=(r-24)*Math.sin(ang); ctx.fillText(String(i).padStart(2,'0'), x, y); }
+  // hands
+  const now=new Date();
+  let hr=now.getHours(); const mn=now.getMinutes(); const sc=now.getSeconds();
+  const hrMax=is24?24:12; hr = is24?hr:((hr%12)||12);
+  const aHr = ((hr%hrMax)+mn/60+sc/3600)*(Math.PI*2/hrMax) - Math.PI/2;
+  const aMn = (mn+sc/60)*(Math.PI*2/60) - Math.PI/2; const aSc = sc*(Math.PI*2/60) - Math.PI/2;
+  ctx.strokeStyle = '#f8e88a'; ctx.lineCap='round';
+  // hour
+  ctx.lineWidth=5; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo((r-60)*Math.cos(aHr),(r-60)*Math.sin(aHr)); ctx.stroke();
+  // minute
+  ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo((r-35)*Math.cos(aMn),(r-35)*Math.sin(aMn)); ctx.stroke();
+  // second
+  ctx.strokeStyle = '#ffb84a'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo((r-20)*Math.cos(aSc),(r-20)*Math.sin(aSc)); ctx.stroke();
+  ctx.restore();
+  // casio boxes
+  const dd = String(now.getDate()).padStart(2,'0');
+  const mm = String(now.getMonth()+1).padStart(2,'0');
+  dateBox.textContent = `${dd}/${mm}`;
+  const hh = String(now.getHours()).padStart(2,'0');
+  const m2 = String(now.getMinutes()).padStart(2,'0');
+  timeBox.textContent = `${hh}:${m2}`;
+}
+setInterval(()=>{ drawClock(ctx24, c24.width, true); drawClock(ctx12, c12.width, false); }, 1000);
+
+document.querySelector('.toggleClock').addEventListener('click', ()=>{
+  const col = document.getElementById('clockPanel');
+  if(col.classList.toggle('hiddenCol')){
+    col.style.width='0';
+  } else { col.style.width=''; }
+});
+
+/******************** PLAYER ************************/ 
+const audio = document.getElementById('audio');
+const cover = document.getElementById('cover');
+const titleEl = document.getElementById('title');
+const artistEl = document.getElementById('artist');
+const bar = document.getElementById('bar');
+const tCur = document.getElementById('tCur');
+const tDur = document.getElementById('tDur');
+const btnPlay = document.getElementById('play');
+const btnPause = document.getElementById('pause');
+const btnPrev = document.getElementById('prev');
+const btnNext = document.getElementById('next');
+const btnLoop = document.getElementById('loop');
+const filePick = document.getElementById('filePick');
+const playlistEl = document.getElementById('playlist');
+const hidePlayer = document.getElementById('hidePlayer');
+const miniBadge = document.getElementById('miniBadge');
+
+const DEFAULT_IMG = 'data:image/svg+xml;base64,' + btoa(`<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400"><rect width="100%" height="100%" fill="#0f0f0f"/><rect x="20" y="20" width="360" height="360" fill="none" stroke="#d5b653" stroke-width="8"/><g fill="#d5b653" font-family="monospace" font-size="28"><text x="50%" y="52%" text-anchor="middle">default.png</text></g></svg>`);
+
+let list = [];
+let idx = -1;
+let looping = false;
+
+function fmt(t){ if(!isFinite(t)) return '0:00'; const m=Math.floor(t/60), s=Math.floor(t%60); return `${m}:${s<10?'0':''}${s}`; }
+
+function load(i){ idx = i; const it = list[idx]; if(!it) return; audio.src = it.src; titleEl.textContent = it.title || 'Desconocido'; artistEl.textContent = it.artist || '—'; cover.src = it.image || DEFAULT_IMG; audio.play().then(()=>{btnPlay.style.display='none';btnPause.style.display='inline-block'}).catch(()=>{}); renderList(); savePlaylist(); }
+function renderList(){ playlistEl.innerHTML=''; list.forEach((s,i)=>{ const d=document.createElement('div'); d.className='song'; d.innerHTML=`<img class="thumb" src="${s.image || DEFAULT_IMG}"><div><div>${s.title||'Sin título'}</div><div style="color:var(--crt-dim); font-size:12px">${s.artist||'—'}</div></div>`; d.style.background = i===idx? '#13110b' : '' ; d.onclick=()=>load(i); playlistEl.appendChild(d); }); }
+
+btnPlay.onclick=()=>{ audio.play(); btnPlay.style.display='none'; btnPause.style.display='inline-block'; };
+btnPause.onclick=()=>{ audio.pause(); btnPause.style.display='none'; btnPlay.style.display='inline-block'; };
+btnPrev.onclick=()=>{ if(!list.length) return; load((idx-1+list.length)%list.length); };
+btnNext.onclick=()=>{ if(!list.length) return; load((idx+1)%list.length); };
+btnLoop.onclick=()=>{ looping=!looping; audio.loop=looping; btnLoop.style.borderColor = looping? '#fff' : getComputedStyle(document.documentElement).getPropertyValue('--border'); };
+
+audio.addEventListener('timeupdate', ()=>{ bar.style.width = (audio.currentTime/audio.duration*100||0)+ '%'; tCur.textContent = fmt(audio.currentTime); tDur.textContent = fmt(audio.duration); });
+audio.addEventListener('ended', ()=>{ if(looping) return; if(list.length>1) btnNext.onclick(); });
+
+function addFiles(files){
+  for(const f of files){
+    if(!f.type.startsWith('audio/')) continue;
+    const url = URL.createObjectURL(f);
+    const name = f.name.replace(/\.[^.]+$/, '');
+    list.push({ src:url, title:name, artist:'Local', image:DEFAULT_IMG });
+  }
+  if(idx===-1 && list.length) load(0); else renderList();
+}
+filePick.addEventListener('change', (e)=> addFiles(e.target.files));
+
+// Save / load playlist (names & blob URLs won't persist after reload, but keep metadata)
+function savePlaylist(){ localStorage.setItem('md_playlist_meta', JSON.stringify(list.map(x=>({title:x.title, artist:x.artist})))); }
+
+// Hide player but keep audio running
+hidePlayer.onclick=()=>{ document.getElementById('playerUI').style.display='none'; miniBadge.style.display='block'; };
+miniBadge.onclick=()=>{ document.getElementById('playerUI').style.display='block'; miniBadge.style.display='none'; };
+
+// Initial default demo track (silent)
+list = [ {title:'Boot Silence', artist:'DDM-04', src:'data:audio/mp3;base64,//uQZAAAAAAAAAAAAAAAAAAAA', image:DEFAULT_IMG} ];
+load(0);
+
+/******************** CHAT (Base64 + BroadcastChannel) **********************/
+const messagesEl = document.getElementById('messages');
+const input = document.getElementById('msg');
+const sendBtn = document.getElementById('send');
+const whoEl = document.getElementById('who');
+let who = localStorage.getItem('md_name') || 'Anónimo';
+whoEl.textContent = who;
+
+const CH_KEY = 'md_chat_messages';
+const bc = 'BroadcastChannel' in window ? new BroadcastChannel('md_chat') : null;
+
+function b64e(str){ return btoa(unescape(encodeURIComponent(str))); }
+function b64d(str){ try{ return decodeURIComponent(escape(atob(str))); }catch(e){ return str; } }
+
+function loadChat(){ const arr = JSON.parse(localStorage.getItem(CH_KEY) || '[]'); messagesEl.innerHTML=''; arr.forEach(p=> appendMsg(b64d(p.n), b64d(p.t), false)); messagesEl.scrollTop = messagesEl.scrollHeight; }
+function saveChat(){ /* already saved in send() */ }
+
+function appendMsg(name, text, push=true){ const box=document.createElement('div'); box.className='msg' + (name===who? ' me' : ''); box.innerHTML = `<div class="by">${name}</div><div class="line">${text}</div>`; messagesEl.appendChild(box); if(push){ messagesEl.scrollTop = messagesEl.scrollHeight; }
+}
+
+function send(){ let txt = input.value.trim(); if(!txt) return; // command to rename
+  const m = txt.match(/^\s*\/md\s+(.+)/i); if(m){ who = m[1].trim().slice(0,32) || 'Anónimo'; localStorage.setItem('md_name', who); whoEl.textContent = who; input.value=''; appendMsg('Sistema', `Nombre actualizado a ${who}`); return; }
+  const rec = { n: b64e(who), t: b64e(txt), ts: Date.now() };
+  const arr = JSON.parse(localStorage.getItem(CH_KEY) || '[]'); arr.push(rec); localStorage.setItem(CH_KEY, JSON.stringify(arr));
+  appendMsg(who, txt);
+  if(bc) bc.postMessage(rec); // notify other tabs
+  input.value='';
+}
+
+sendBtn.onclick=send; input.addEventListener('keydown', e=>{ if(e.key==='Enter') send(); });
+if(bc) bc.onmessage = ev=>{ const r=ev.data; appendMsg(b64d(r.n), b64d(r.t)); };
+loadChat();
+
+/******************** MISC **********************/
+// Resume title on focus
+window.addEventListener('focus', ()=>{ document.title = 'MD // Boot & Console'; });
+</script>
+</body>
+</html>

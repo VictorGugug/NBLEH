@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FELI CUMPLEEEE</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="mus/favicon1.png" type="image/png">
+    <style>
+        /* Cursors */
+        body, h1, p, .player-info, .side-img, footer, .playlist {
+            cursor: url('http://www.rw-designer.com/cursor-extern.php?id=212058'), auto;
+        }
+        .wip {
+            cursor: url('http://www.rw-designer.com/cursor-extern.php?id=212058'), auto;
+        }
+        .player, button, a, .song-item {
+            cursor: url('http://www.rw-designer.com/cursor-extern.php?id=212059'), pointer;
+        }
+
+        /* General styles */
+        body {
+            margin: 0;
+            font-family: 'Orbitron', sans-serif;
+            background-color: #0a0a0a;
+            color: #f0e6ff;
+            text-align: center;
+        }
+
+        h1 {
+            color: #ffcc00;
+            text-shadow: 0 0 5px #fff200, 0 0 15px #ffcc00;
+            margin: 20px 0 10px 0;
+        }
+
+        p {
+            max-width: 700px;
+            margin: 0 auto 20px auto;
+            font-size: 1.2em;
+            line-height: 1.5em;
+            text-shadow: 0 0 10px #7b2cbf;
+        }
+
+        /* Player and playlist */
+        .player-wrapper {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .player {
+            background: rgba(20, 20, 20, 0.95);
+            border-radius: 12px;
+            box-shadow: 0 0 12px #7b2cbf;
+            border: 2px solid #ffcc00;
+            padding: 8px;
+            width: 60px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: width 0.4s ease-in-out;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        .player:hover {
+            width: 450px;
+        }
+
+        .player-thumbnail {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid #ffcc00;
+            flex-shrink: 0;
+            transition: transform 0.4s ease-in-out;
+        }
+
+        .player:hover .player-thumbnail {
+            transform: rotate(360deg);
+        }
+
+        .player-info {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            flex-grow: 1;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.4s ease-in-out;
+        }
+
+        .player:hover .player-info {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .player-info h3 {
+            margin: 0;
+            font-size: 1em;
+            color: #fff200;
+            text-align: left;
+        }
+
+        .player-info p {
+            margin: 0;
+            font-size: 0.8em;
+            color: #ccc;
+            text-align: left;
+            max-width: none;
+        }
+
+        .player-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.4s ease-in-out;
+        }
+
+        .player:hover .player-controls {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .player-controls button {
+            color: #ffcc00;
+            background: transparent;
+            border: none;
+            font-size: 1.5em;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        #loopBtn {
+            font-size: 1.2em;
+        }
+        
+        #loopBtn.active {
+            color: #fff200;
+            border-bottom: 2px solid #fff200;
+        }
+
+        .progress-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.4s ease-in-out;
+        }
+
+        .player:hover .progress-container {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .progress-bar-wrapper {
+            width: 100%;
+            background: #333;
+            height: 6px;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .progress {
+            height: 6px;
+            background: linear-gradient(90deg, #ffcc00, #7b2cbf, #ffcc00);
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+
+        .time-current, .time-duration {
+            font-size: 0.8em;
+            color: #ccc;
+        }
+
+        /* Playlist */
+        .playlist {
+            background: rgba(20, 20, 20, 0.95);
+            border-radius: 12px;
+            box-shadow: 0 0 12px #7b2cbf;
+            border: 2px solid #ffcc00;
+            margin-top: 10px;
+            padding: 10px;
+            width: 250px;
+            opacity: 0;
+            max-height: 0;
+            overflow: hidden;
+            transition: opacity 0.4s ease-in-out, max-height 0.4s ease-in-out;
+        }
+
+        .playlist.expanded {
+            opacity: 1;
+            max-height: 300px;
+        }
+
+        .song-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px;
+            margin-bottom: 5px;
+            border-radius: 8px;
+            transition: background-color 0.2s;
+        }
+
+        .song-item:hover {
+            background-color: rgba(123, 44, 191, 0.2);
+        }
+
+        .song-item-thumbnail {
+            width: 40px;
+            height: 40px;
+            border-radius: 4px;
+        }
+
+        .song-item-info {
+            text-align: left;
+        }
+
+        .song-item-info h4 {
+            margin: 0;
+            font-size: 0.9em;
+            color: #fff200;
+        }
+
+        .song-item-info p {
+            margin: 0;
+            font-size: 0.7em;
+            color: #ccc;
+        }
+
+        .wip-item {
+            padding: 8px;
+            text-align: center;
+            color: #999;
+            font-style: italic;
+        }
+
+        /* Images */
+        .container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            padding: 20px;
+        }
+
+        .side-img {
+            border-radius: 12px;
+            border: 3px solid #ffcc00;
+            box-shadow: 0 0 15px #ffcc00;
+            width: 200px;
+            height: auto;
+        }
+
+        /* Enlace discreto */
+        footer {
+            margin-top: 50px;
+        }
+        footer a {
+            text-decoration: none;
+            color: inherit;
+        }
+    </style>
+</head>
+<body>
+    <h1>FELI CUMPLE NEEEEEILLLLLLL</h1>
+    <p>
+      
+    </p>
+
+    <div class="player-wrapper">
+        <div class="player" id="player">
+            <audio id="audio" src="mus/Falling with you.mp3"></audio>
+            <img class="player-thumbnail" src="mus/Falling with you.jpeg" alt="Portada de la canción" id="player-thumbnail">
+            <div class="player-info">
+                <h3 id="song-title">Falling with you</h3>
+                <p id="song-artist">AJ DiSpirito</p>
+            </div>
+            <div class="player-controls">
+                <button onclick="skipBack(5)">«</button>
+                <button id="playBtn" onclick="playAudio()">▶</button>
+                <button id="pauseBtn" style="display: none;" onclick="pauseAudio()">⏸</button>
+                <button onclick="skipForward(5)">»</button>
+                <button id="loopBtn" onclick="toggleLoop()">↻</button>
+            </div>
+            <div class="progress-container">
+                <span class="time-current" id="currentTime">0:00</span>
+                <div class="progress-bar-wrapper">
+                    <div class="progress" id="progress"></div>
+                </div>
+                <span class="time-duration" id="duration">0:00</span>
+            </div>
+        </div>
+        <div class="playlist" id="playlist"></div>
+    </div>
+
+    <div class="container">
+        <img src="chigga.jpg" alt="chiggalovyu" class="side-img">
+    </div>
+
+    <footer>
+        <a href="minicoso.html">I LOV YU N-IGGA</a>
+    </footer>
+
+    <script>
+        const audio = document.getElementById('audio');
+        const playerThumbnail = document.getElementById('player-thumbnail');
+        const songTitle = document.getElementById('song-title');
+        const songArtist = document.getElementById('song-artist');
+        const progress = document.getElementById('progress');
+        const currentTimeEl = document.getElementById('currentTime');
+        const durationEl = document.getElementById('duration');
+        const playBtn = document.getElementById('playBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const playlistEl = document.getElementById('playlist');
+        const playerWrapper = document.querySelector('.player-wrapper');
+        const loopBtn = document.getElementById('loopBtn');
+        const originalTitle = document.title;
+
+        const playlist = [
+            {
+                title: 'Falling with you',
+                artist: 'AJ DiSpirito',
+                src: 'mus/Falling with you.mp3',
+                image: 'mus/Falling with you.jpeg'
+            },
+            {
+                title: 'The HuMaN Gala',
+                artist: 'AJ DiSpirito',
+                src: 'mus/The HuMaN Gala.mp3',
+                image: 'mus/The HuMaN Gala.jpeg',
+                easterEgg: 'mus/The HuMaN Galap.jpeg'
+            },
+            {
+                title: 'Waltz in E-Major, Op. 15 "Moon Waltz"',
+                artist: 'Cojum Dip',
+                src: 'mus/Waltz in E-Major, Op. 15 ＂Moon Waltz＂.mp3',
+                image: 'mus/Waltz in E-Major, Op. 15 ＂Moon Waltz＂.jpeg'
+            },
+            {
+                title: 'No Eyed Girl',
+                artist: 'Lemon Demon',
+                src: 'mus/No Eyed Girl.mp3',
+                image: 'mus/SP.jpeg',
+                easterEgg: 'mus/NC.jpeg'
+            },
+            {
+                title: 'Ancient Aliens',
+                artist: 'Lemon Demon',
+                src: 'mus/Ancient Aliens.mp3',
+                image: 'mus/SP.jpeg',
+                easterEgg: 'mus/NC.jpeg'
+            }
+        ];
+
+        let currentSongIndex = 0;
+        let noEyedGirlEasterEggActive = false;
+        let isLooping = false;
+
+        function loadSong(song) {
+            audio.src = song.src;
+            let imageSrc = song.image;
+
+            if (song.easterEgg && (song.title === 'No Eyed Girl' || song.title === 'Ancient Aliens') && noEyedGirlEasterEggActive) {
+                imageSrc = song.easterEgg;
+            } else if (song.title === 'The HuMaN Gala') {
+                imageSrc = Math.random() < 0.1 ? song.easterEgg : song.image;
+            } else {
+                imageSrc = song.image;
+            }
+
+            playerThumbnail.src = imageSrc;
+            songTitle.textContent = song.title;
+            songArtist.textContent = song.artist;
+            audio.load();
+            updateMediaSession(song);
+        }
+
+        function playAudio() {
+            if (audio.paused) {
+                audio.play();
+                playBtn.style.display = 'none';
+                pauseBtn.style.display = 'block';
+                updateTitle();
+            }
+        }
+
+        function pauseAudio() {
+            if (!audio.paused) {
+                audio.pause();
+                playBtn.style.display = 'block';
+                pauseBtn.style.display = 'none';
+                document.title = originalTitle;
+            }
+        }
+        
+        function skipBack(seconds) {
+            audio.currentTime = Math.max(0, audio.currentTime - seconds);
+        }
+        
+        function skipForward(seconds) {
+            audio.currentTime = Math.min(audio.duration, audio.currentTime + seconds);
+        }
+        
+        function toggleLoop() {
+            isLooping = !isLooping;
+            if (isLooping) {
+                loopBtn.classList.add('active');
+                audio.loop = true;
+            } else {
+                loopBtn.classList.remove('active');
+                audio.loop = false;
+            }
+        }
+        
+        function createPlaylist() {
+            playlistEl.innerHTML = '';
+            noEyedGirlEasterEggActive = Math.random() < 0.1;
+
+            playlist.forEach((song, index) => {
+                const songItem = document.createElement('div');
+                songItem.classList.add('song-item');
+                songItem.dataset.index = index;
+
+                let imageSrc = song.image;
+                if (song.easterEgg && (song.title === 'No Eyed Girl' || song.title === 'Ancient Aliens') && noEyedGirlEasterEggActive) {
+                    imageSrc = song.easterEgg;
+                } else if (song.title === 'The HuMaN Gala') {
+                    imageSrc = Math.random() < 0.1 ? song.easterEgg : song.image;
+                } else {
+                    imageSrc = song.image;
+                }
+
+                songItem.innerHTML = `
+                    <img class="song-item-thumbnail" src="${imageSrc}" alt="Portada">
+                    <div class="song-item-info">
+                        <h4>${song.title}</h4>
+                        <p>${song.artist}</p>
+                    </div>
+                `;
+                songItem.addEventListener('click', () => {
+                    currentSongIndex = index;
+                    loadSong(playlist[currentSongIndex]);
+                    playAudio();
+                });
+                playlistEl.appendChild(songItem);
+            });
+
+            const wipItem = document.createElement('div');
+            wipItem.classList.add('wip-item');
+            wipItem.innerHTML = 'Añadir música (WIP)';
+            playlistEl.appendChild(wipItem);
+        }
+
+        playerThumbnail.addEventListener('click', () => {
+            playlistEl.classList.toggle('expanded');
+        });
+
+        playerWrapper.addEventListener('mouseleave', () => {
+            playlistEl.classList.remove('expanded');
+        });
+
+        audio.addEventListener('loadedmetadata', () => {
+            durationEl.textContent = formatTime(audio.duration);
+        });
+
+        audio.addEventListener('timeupdate', () => {
+            const percent = (audio.currentTime / audio.duration) * 100;
+            progress.style.width = percent + '%';
+            currentTimeEl.textContent = formatTime(audio.currentTime);
+        });
+
+        audio.addEventListener('ended', () => {
+            if (!isLooping) {
+                playBtn.style.display = 'block';
+                pauseBtn.style.display = 'none';
+                document.title = originalTitle;
+            }
+        });
+        
+        function formatTime(seconds) {
+            if (isNaN(seconds)) return '0:00';
+            const minutes = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
+        }
+        
+        function updateTitle() {
+            document.title = `▶️ ${playlist[currentSongIndex].title} | FELI CUMPLEEEE`;
+        }
+
+        function updateMediaSession(song) {
+            if ('mediaSession' in navigator) {
+                navigator.mediaSession.metadata = new MediaMetadata({
+                    title: song.title,
+                    artist: song.artist,
+                    album: 'Reproductor de cumpleaños',
+                    artwork: [
+                        { src: song.image, sizes: '96x96', type: 'image/jpeg' },
+                        { src: song.image, sizes: '128x128', type: 'image/jpeg' },
+                        { src: song.image, sizes: '192x192', type: 'image/jpeg' },
+                        { src: song.image, sizes: '256x256', type: 'image/jpeg' },
+                        { src: song.image, sizes: '384x384', type: 'image/jpeg' },
+                        { src: song.image, sizes: '512x512', type: 'image/jpeg' },
+                    ]
+                });
+
+                navigator.mediaSession.setActionHandler('play', () => {
+                    playAudio();
+                });
+                navigator.mediaSession.setActionHandler('pause', () => {
+                    pauseAudio();
+                });
+                navigator.mediaSession.setActionHandler('seekbackward', (details) => {
+                    skipBack(details.seekOffset || 10);
+                });
+                navigator.mediaSession.setActionHandler('seekforward', (details) => {
+                    skipForward(details.seekOffset || 10);
+                });
+                navigator.mediaSession.setActionHandler('previoustrack', () => {
+                    // Implementa la lógica para la canción anterior si es necesario
+                });
+                navigator.mediaSession.setActionHandler('nexttrack', () => {
+                    // Implementa la lógica para la siguiente canción si es necesario
+                });
+            }
+        }
+
+        loadSong(playlist[currentSongIndex]);
+        createPlaylist();
+    </script>
+</body>
+</html>
